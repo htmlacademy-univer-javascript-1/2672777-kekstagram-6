@@ -1,5 +1,6 @@
-let photos = [];
+import { isEscapeKey } from './util.js';
 
+let photos = [];
 const bigPicture = document.querySelector('.big-picture');
 const bigPictureImg = bigPicture.querySelector('.big-picture__img img');
 const likesCount = bigPicture.querySelector('.likes-count');
@@ -8,7 +9,7 @@ const socialCaption = bigPicture.querySelector('.social__caption');
 const commentsLoader = bigPicture.querySelector('.comments-loader');
 const socialCommentCount = bigPicture.querySelector('.social__comment-count');
 const closeButton = bigPicture.querySelector('.big-picture__cancel');
-const COMMENTS_PLUS = 5;
+const commentsBatchSize = 5;
 let currentPhoto = null;
 let shownCommentsCount = 0;
 let shownCountElement = socialCommentCount.querySelector('.social__comment-shown-count');
@@ -69,14 +70,13 @@ const createCommentElement = ({ avatar, message, name }) => {
   return commentElement;
 };
 
-
 const renderComments = () => {
   if (!currentPhoto) {
     return;
   }
 
   const comments = currentPhoto.comments;
-  const commentsToShow = Math.min(shownCommentsCount + COMMENTS_PLUS, comments.length);
+  const commentsToShow = Math.min(shownCommentsCount + commentsBatchSize, comments.length);
 
   for (let i = shownCommentsCount; i < commentsToShow; i++) {
     const commentElement = createCommentElement(comments[i]);
@@ -100,12 +100,15 @@ const onLoadMoreClick = (evt) => {
 const resetComments = () => {
   socialComments.innerHTML = '';
   shownCommentsCount = 0;
-  updateCommentsCounter();
+  commentsLoader.classList.remove('hidden');
+  commentsLoader.removeEventListener('click', onLoadMoreClick);
+  commentsLoader.addEventListener('click', onLoadMoreClick);
+};
 
-  if (commentsLoader) {
-    commentsLoader.classList.remove('hidden');
-    commentsLoader.removeEventListener('click', onLoadMoreClick);
-    commentsLoader.addEventListener('click', onLoadMoreClick);
+const onDocumentKeydown = (evt) => {
+  if (isEscapeKey(evt)) {
+    evt.preventDefault();
+    closeBigPicture();
   }
 };
 
@@ -128,29 +131,22 @@ const openBigPicture = (photoId) => {
 
   bigPicture.classList.remove('hidden');
   document.body.classList.add('modal-open');
-
   document.body.style.overflow = 'hidden';
+
+  document.addEventListener('keydown', onDocumentKeydown);
 };
 
-const closeBigPicture = () => {
+function closeBigPicture() {
   bigPicture.classList.add('hidden');
   document.body.classList.remove('modal-open');
   document.body.style.overflow = '';
 
-  if (commentsLoader) {
-    commentsLoader.removeEventListener('click', onLoadMoreClick);
-  }
-};
+  commentsLoader.removeEventListener('click', onLoadMoreClick);
+  document.removeEventListener('keydown', onDocumentKeydown);
+}
 
 closeButton.addEventListener('click', () => {
   closeBigPicture();
-});
-
-document.addEventListener('keydown', (evt) => {
-  if (evt.key === 'Escape' && !bigPicture.classList.contains('hidden')) {
-    evt.preventDefault();
-    closeBigPicture();
-  }
 });
 
 export {
